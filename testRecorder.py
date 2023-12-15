@@ -1,6 +1,6 @@
 # 导入需要的模块
 from pywinauto_recorder import Recorder
-from pywinauto_recorder.player import playback
+
 import time
 
 if __name__ == '__main__':
