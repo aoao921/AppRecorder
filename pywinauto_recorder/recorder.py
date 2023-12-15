@@ -1046,6 +1046,11 @@ class Recorder(Thread):
 			self.started_recording_with_keyboard = False
 			_process_events(events, process_menu_click=self.process_menu_click_mode)
 			_clean_events(events)
+			file_path = "events.txt"
+			with open(file_path, "w") as file:
+				for item in events:
+					file.write(str(item) + "\n")  #写入元素并换行
+				
 			return _write_in_file(events, relative_coordinate_mode=self.relative_coordinate_mode)
 		self.main_overlay.clear_all()
 		_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_stop, 10, 10)
