@@ -211,6 +211,7 @@ def _process_events(events, process_menu_click=True):
 	i = len(events) - 1
 	while i >= 0:
 		if isinstance(events[i], mouse.ButtonEvent) and events[i].event_type == 'up':
+			# 当发现点击事件up，就处理拖拽或者单纯点击事件
 			i = _process_drag_and_drop_or_click_events(events, i)
 		i = i - 1
 	if process_menu_click:
@@ -263,9 +264,11 @@ def _process_drag_and_drop_or_click_events(events, i):
 	i0 = i - 1
 	while i0 >= 0:
 		if isinstance(events[i0], ElementEvent):
+			# 查找紧随up事件前的element事件
 			element_event_before_button_up = events[i0]
 			break
 		i0 = i0 - 1
+	move_event_end=None
 	while i0 >= 0:
 		if isinstance(events[i0], mouse.MoveEvent):
 			move_event_end = events[i0]
@@ -274,6 +277,7 @@ def _process_drag_and_drop_or_click_events(events, i):
 	i0 = i - 1
 	drag_and_drop = False
 	click_count = 0
+	# 下面的循环内的move_event_end无法访问的
 	while i0 >= 0:
 		if isinstance(events[i0], mouse.MoveEvent):
 			if events[i0].x != move_event_end.x or events[i0].y != move_event_end.y:
@@ -611,7 +615,7 @@ class Recorder(Thread):
 		self.common_path_info_tip = ""
 		self.last_element_event = None
 		self.started_recording_with_keyboard = False
-		self.element_info_tooltip = ElementInfoTooltip()
+		# self.element_info_tooltip = ElementInfoTooltip()
 		self.start()
 	
 	def __overlay_add_bold_rectangle(self, wrapper_rectangle, color=(0, 255, 0)):
@@ -898,14 +902,14 @@ class Recorder(Thread):
 					_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_record, 10, 10)
 					nb_icons += 1
 				elif self.mode == "Stop":
-					self.element_info_tooltip.hide()
+					# self.element_info_tooltip.hide()
 					self.main_overlay.clear_all()
 					_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_stop, 10, 10)
 					self.main_overlay.refresh()
 					while self.mode == "Stop":
 						time.sleep(0.1)
 				elif self.mode == "Play":
-					self.element_info_tooltip.hide()
+					# self.element_info_tooltip.hide()
 					self.main_overlay.clear_all()
 					_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_play, 10, 10)
 					self.main_overlay.refresh()
@@ -915,7 +919,8 @@ class Recorder(Thread):
 					_overlay_add_progress_icon(self.main_overlay, i, 10 + 60 * nb_icons, 10)
 					nb_icons += 1
 				if self.mode == "Info":
-					self.element_info_tooltip.show()
+					pass
+					# self.element_info_tooltip.show()
 				if self.smart_mode:
 					_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_light_on, 10 + 60 * nb_icons, 10)
 					nb_icons += 1
@@ -1023,7 +1028,7 @@ class Recorder(Thread):
 		x, y = win32api.GetCursorPos()
 		self.event_list = [mouse.MoveEvent(x, y, time.time())]
 		_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_record, 10, 10)
-		self.element_info_tooltip.hide()
+		# self.element_info_tooltip.hide()
 		self.main_overlay.clear_all()
 		self.main_overlay.refresh()
 		self.mode = "Record"
@@ -1083,7 +1088,7 @@ class Recorder(Thread):
 		"""
 		self.main_overlay.clear_all()
 		self.main_overlay.refresh()
-		del self.element_info_tooltip
+		# del self.element_info_tooltip
 		self.mode = 'Quit'
 		self.join()
 		print("Quit")
