@@ -33,10 +33,10 @@ def find_elements(full_element_path=None, visible_only=True, enabled_only=True, 
 
 __all__ = ['Recorder']
 
-ElementEvent = namedtuple('ElementEvent', ['strategy', 'rectangle', 'path'])
+ElementEvent = namedtuple('ElementEvent', ['strategy', 'rectangle', 'path','time'])
 SendKeysEvent = namedtuple('SendKeysEvent', ['line', 'time'])
-MouseWheelEvent = namedtuple('MouseWheelEvent', ['delta'])
-DragAndDropEvent = namedtuple('DragAndDropEvent', ['path', 'dx1', 'dy1', 'path2', 'dx2', 'dy2'])
+MouseWheelEvent = namedtuple('MouseWheelEvent', ['delta','time'])
+DragAndDropEvent = namedtuple('DragAndDropEvent', ['path', 'dx1', 'dy1', 'path2', 'dx2', 'dy2','time'])
 ClickEvent = namedtuple('ClickEvent', ['button', 'click_count', 'path', 'dx', 'dy', 'time'])
 FindEvent = namedtuple('FindEvent', ['path', 'dx', 'dy', 'time'])
 MenuEvent = namedtuple('MenuEvent', ['path', 'menu_path'])
@@ -46,29 +46,32 @@ def print_event_list(event_list):
 	with open("events.txt", "w") as file:
 		for event in event_list:
 			if isinstance(event, ElementEvent):
-				file.write(f"ElementEvent: strategy={event.strategy} - rectangle={event.rectangle} - path={event.path}\n")
+				event_time = datetime.datetime.fromtimestamp(event.time)
+				formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
+				file.write(f"{formatted_time} - ElementEvent: path={event.path}\n")
 			elif isinstance(event, SendKeysEvent):
 				
 				event_time = datetime.datetime.fromtimestamp(event.time)
 				formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
-				file.write(f"{formatted_time} - SendKeysEvent: line={event.line} - time={formatted_time}\n")
+				file.write(f"{formatted_time} - SendKeysEvent: line={event.line} \n")
 			
 			elif isinstance(event, MouseWheelEvent):
 				# if event.time is not None:
-				#     event_time = datetime.datetime.fromtimestamp(event.time)
-				#     formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
-				#     file.write(f"{formatted_time} - MouseWheelEvent: delta={event.delta}\n")
+				    event_time = datetime.datetime.fromtimestamp(event.time)
+				    formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
+				    file.write(f"{formatted_time} - MouseWheelEvent: delta={event.delta}\n")
 				# else:
-				file.write(f"MouseWheelEvent: delta={event.delta}\n")
+				# file.write(f"MouseWheelEvent: delta={event.delta}\n")
 			elif isinstance(event, DragAndDropEvent):
 				file.write(
-					f"DragAndDropEvent: path={event.path} - dx1={event.dx1} - dy1={event.dy1} - path2={event.path2} - dx2={event.dx2} - dy2={event.dy2}\n")
+					
+					f"{formatted_time} - DragAndDropEvent: path={event.path} - dx1={event.dx1} - dy1={event.dy1} - path2={event.path2} - dx2={event.dx2} - dy2={event.dy2}\n")
 			elif isinstance(event, ClickEvent):
 				
 				event_time = datetime.datetime.fromtimestamp(event.time)
 				formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
 				file.write(
-					f"{formatted_time} - ClickEvent: button={event.button} - click_count={event.click_count} - path={event.path} - dx={event.dx} - dy={event.dy} - time={formatted_time}\n")
+					f"{formatted_time} - ClickEvent: button={event.button} - click_count={event.click_count} - path={event.path} \n")
 			
 			elif isinstance(event, FindEvent):
 				
@@ -300,7 +303,7 @@ def _process_wheel_events(events, i):
 			break
 	for i_p_e in sorted(i_processed_events, reverse=True):
 		del events[i_p_e]
-	events[i] = MouseWheelEvent(delta=delta)
+	events[i] = MouseWheelEvent(delta=delta,time=events[i].time)
 
 
 def _process_drag_and_drop_or_click_events(events, i):
@@ -355,7 +358,7 @@ def _process_drag_and_drop_or_click_events(events, i):
 		dx2, dy2 = _compute_dx_dy(move_event_end.x, move_event_end.y, element_event_before_button_up.rectangle)
 		events[i] = DragAndDropEvent(
 			path=element_event_before_button_down.path, dx1=dx1, dy1=dy1,
-			path2=element_event_before_button_up.path, dx2=dx2, dy2=dy2)
+			path2=element_event_before_button_up.path, dx2=dx2, dy2=dy2,time=element_event_before_button_down.time)
 	else:
 		up_event = events[i]
 		dx, dy = _compute_dx_dy(move_event_end.x, move_event_end.y, element_event_before_button_down.rectangle)
@@ -943,8 +946,8 @@ class Recorder(Thread):
 						unique_wrapper_path = wrapper_path + unique_array_2d
 				# <----- ***
 				if unique_wrapper_path is not None:
-					# self.last_element_event = ElementEvent(strategy, wrapper.rectangle(), unique_wrapper_path)
-					self.last_element_event = ElementEvent(strategy, wrapper_rectangle, unique_wrapper_path)
+					
+					self.last_element_event = ElementEvent(strategy, wrapper_rectangle, unique_wrapper_path,time.time())
 					if self.event_list and self.mode == "Record":
 						self.event_list.append(self.last_element_event)
 				nb_icons = 0
