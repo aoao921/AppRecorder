@@ -1,12 +1,14 @@
 """This module contains functions and classes allowing to record a sequence of user actions.
 All these functions and classes are private except the Recorder class.
 """
-
+import psutil
+import win32process
 import sys
 import os
 import traceback
 import time
 import win32api
+import win32gui
 import win32con
 from threading import Thread
 import pywinauto
@@ -23,7 +25,7 @@ from .core import path_separator, type_separator, Strategy, is_int, \
 from .core import find_elements as not_ttl_cached_find_elements
 from .player import playback
 from cachetools import func
-
+from .filter import get_window_handle_by_title,get_process_id_from_window_handle,get_process_id_from_window_title,get_process_id_by_name,print_all_event_list,print_wireshark_event_list
 
 @func.ttl_cache(ttl=10)
 def find_elements(full_element_path=None, visible_only=True, enabled_only=True, active_only=True):
@@ -33,57 +35,7 @@ def find_elements(full_element_path=None, visible_only=True, enabled_only=True, 
 
 __all__ = ['Recorder']
 
-ElementEvent = namedtuple('ElementEvent', ['strategy', 'rectangle', 'path','time'])
-SendKeysEvent = namedtuple('SendKeysEvent', ['line', 'time'])
-MouseWheelEvent = namedtuple('MouseWheelEvent', ['delta','time'])
-DragAndDropEvent = namedtuple('DragAndDropEvent', ['path', 'dx1', 'dy1', 'path2', 'dx2', 'dy2','time'])
-ClickEvent = namedtuple('ClickEvent', ['button', 'click_count', 'path', 'dx', 'dy', 'time'])
-FindEvent = namedtuple('FindEvent', ['path', 'dx', 'dy', 'time'])
-MenuEvent = namedtuple('MenuEvent', ['path', 'menu_path'])
-
-
-def print_event_list(event_list):
-	with open("events.txt", "w") as file:
-		for event in event_list:
-			if isinstance(event, ElementEvent):
-				event_time = datetime.datetime.fromtimestamp(event.time)
-				formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
-				file.write(f"{formatted_time} - ElementEvent: path={event.path}\n")
-			elif isinstance(event, SendKeysEvent):
-				
-				event_time = datetime.datetime.fromtimestamp(event.time)
-				formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
-				file.write(f"{formatted_time} - SendKeysEvent: line={event.line} \n")
-			
-			elif isinstance(event, MouseWheelEvent):
-				# if event.time is not None:
-				    event_time = datetime.datetime.fromtimestamp(event.time)
-				    formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
-				    file.write(f"{formatted_time} - MouseWheelEvent: delta={event.delta}\n")
-				# else:
-				# file.write(f"MouseWheelEvent: delta={event.delta}\n")
-			elif isinstance(event, DragAndDropEvent):
-				file.write(
-					
-					f"{formatted_time} - DragAndDropEvent: path={event.path} - dx1={event.dx1} - dy1={event.dy1} - path2={event.path2} - dx2={event.dx2} - dy2={event.dy2}\n")
-			elif isinstance(event, ClickEvent):
-				
-				event_time = datetime.datetime.fromtimestamp(event.time)
-				formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
-				file.write(
-					f"{formatted_time} - ClickEvent: button={event.button} - click_count={event.click_count} - path={event.path} \n")
-			
-			elif isinstance(event, FindEvent):
-				
-				event_time = datetime.datetime.fromtimestamp(event.time)
-				formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
-				file.write(
-					f"{formatted_time} - FindEvent: path={event.path} - dx={event.dx} - dy={event.dy} - time={formatted_time}\n")
-			
-			elif isinstance(event, MenuEvent):
-				file.write(f"MenuEvent: path={event.path} - menu_path={event.menu_path}\n")
-			else:
-				pass
+from .filter import ElementEvent,SendKeysEvent ,MouseWheelEvent,ClickEvent ,FindEvent ,MenuEvent,DragAndDropEvent
 
 
 class IconSet:
@@ -364,7 +316,7 @@ def _process_drag_and_drop_or_click_events(events, i):
 		dx, dy = _compute_dx_dy(move_event_end.x, move_event_end.y, element_event_before_button_down.rectangle)
 		events[i] = ClickEvent(
 			button=up_event.button, click_count=click_count,
-			path=element_event_before_button_down.path, dx=dx, dy=dy, time=up_event.time)
+			path=element_event_before_button_down.path, dx=dx, dy=dy, time=up_event.time,id=get_process_id_from_window_title(element_event_before_button_down.path.split("||")[0]))
 	i_processed_events = []
 	i0 = i - 1
 	while i0 >= i1:
@@ -447,6 +399,7 @@ def _process_menu_select_events(events, i):
 				str_name, _, _, _ = get_entry(matching[0])
 				menu_path.append(str_name)
 				i_processed_events.append(i0)
+				# entry_list中是否存在包含"||MenuBar"子字符串的条目
 				if [s for s in entry_list if "||MenuBar" in s]:
 					break
 			else:
@@ -456,7 +409,7 @@ def _process_menu_select_events(events, i):
 		menu_path = path_separator.join(reversed(menu_path))
 		i_menu_bar = i_processed_events.pop()
 		menu_bar_path = get_entry_list(events[i_menu_bar].path)[0]
-		events[i_menu_bar] = MenuEvent(path=menu_bar_path, menu_path=menu_path)
+		events[i_menu_bar] = MenuEvent(path=menu_bar_path, menu_path=menu_path,time=events[i].time,id=get_process_id_from_window_title(menu_bar_path.split("||")[0]))
 		for i_p_e in sorted(i_processed_events, reverse=True):
 			del events[i_p_e]
 			i -= 1
@@ -662,7 +615,7 @@ class Recorder(Thread):
 		self.event_list = []
 		self._copy_count = 0
 		self._mode = "Initializing"
-		self._process_menu_click_mode = False
+		self._process_menu_click_mode = True
 		self._smart_mode = False
 		self._relative_coordinate_mode = False
 		self.wrapper_old_info_tip = None
@@ -718,8 +671,8 @@ class Recorder(Thread):
 						previous_wrapper_path2 = wrapper_path2
 						
 						if find_elements(get_wrapper_path(wrapper2)):
-							self.__overlay_add_bold_rectangle(wrapper2_rectangle, color=(0, 0, 255))
-							self.__overlay_add_bold_rectangle(wrapper_rectangle, color=(255, 200, 0))
+							# self.__overlay_add_bold_rectangle(wrapper2_rectangle, color=(0, 0, 255))
+							# self.__overlay_add_bold_rectangle(wrapper_rectangle, color=(255, 200, 0))
 							return '#[' + wrapper_path2 + ',' + str(r_x) + ']'
 					return None
 		return None
@@ -734,10 +687,12 @@ class Recorder(Thread):
 				except IndexError:
 					continue
 				if r == wrapper_rectangle:
-					self.__overlay_add_bold_rectangle(r, color=(255, 200, 0))
+					# self.__overlay_add_bold_rectangle(r, color=(255, 200, 0))
+					pass
 					unique_array_2d = '#[' + str(r_y) + ',' + str(r_x) + ']'
 				else:
-					self.__overlay_add_bold_rectangle(r, color=(255, 0, 0))
+					pass
+					# self.__overlay_add_bold_rectangle(r, color=(255, 0, 0))
 		return unique_array_2d
 	
 	def __mouse_on(self, mouse_event):
@@ -919,10 +874,12 @@ class Recorder(Thread):
 						continue
 					if len(elements) == 1:
 						unique_wrapper_path = wrapper_path
-						self.__overlay_add_bold_rectangle(wrapper_rectangle, color=(0, 255, 0))
+						pass
+						# self.__overlay_add_bold_rectangle(wrapper_rectangle, color=(0, 255, 0))
 					else:
 						for e in elements:
-							self.__overlay_add_bold_rectangle(e.rectangle(), color=(255, 0, 0))
+							pass
+							# self.__overlay_add_bold_rectangle(e.rectangle(), color=(255, 0, 0))
 				
 				if strategy == Strategy.array_1D and elements:
 					x_new, y_new = win32api.GetCursorPos()
@@ -947,38 +904,39 @@ class Recorder(Thread):
 				# <----- ***
 				if unique_wrapper_path is not None:
 					
-					self.last_element_event = ElementEvent(strategy, wrapper_rectangle, unique_wrapper_path,time.time())
+					id=get_process_id_from_window_handle(get_window_handle_by_title(unique_wrapper_path.split("||")[0]))
+					self.last_element_event = ElementEvent(strategy, wrapper_rectangle, unique_wrapper_path,time.time(),id)
 					if self.event_list and self.mode == "Record":
 						self.event_list.append(self.last_element_event)
 				nb_icons = 0
 				if self.mode == "Record":
-					_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_record, 10, 10)
+					# _overlay_add_mode_icon(self.main_overlay, IconSet.hicon_record, 10, 10)
 					nb_icons += 1
 				elif self.mode == "Stop":
 					# self.element_info_tooltip.hide()
 					self.main_overlay.clear_all()
-					_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_stop, 10, 10)
+					# _overlay_add_mode_icon(self.main_overlay, IconSet.hicon_stop, 10, 10)
 					self.main_overlay.refresh()
 					while self.mode == "Stop":
 						time.sleep(0.1)
 				elif self.mode == "Play":
 					# self.element_info_tooltip.hide()
 					self.main_overlay.clear_all()
-					_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_play, 10, 10)
+					# _overlay_add_mode_icon(self.main_overlay, IconSet.hicon_play, 10, 10)
 					self.main_overlay.refresh()
 					while self.mode == "Play":
 						time.sleep(1.0)
 				if self.mode in ("Record", "Info"):
-					_overlay_add_progress_icon(self.main_overlay, i, 10 + 60 * nb_icons, 10)
+					# _overlay_add_progress_icon(self.main_overlay, i, 10 + 60 * nb_icons, 10)
 					nb_icons += 1
 				if self.mode == "Info":
 					pass
 				# self.element_info_tooltip.show()
 				if self.smart_mode:
-					_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_light_on, 10 + 60 * nb_icons, 10)
+					# _overlay_add_mode_icon(self.main_overlay, IconSet.hicon_light_on, 10 + 60 * nb_icons, 10)
 					nb_icons += 1
 				if self._copy_count > 0:
-					_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_clipboard, 10 + 60 * nb_icons, 10)
+					# _overlay_add_mode_icon(self.main_overlay, IconSet.hicon_clipboard, 10 + 60 * nb_icons, 10)
 					nb_icons += 1
 					self._copy_count = self._copy_count - 1
 				
@@ -1080,7 +1038,7 @@ class Recorder(Thread):
 		time.sleep(0.6)  # wait the recorder to be fully ready
 		x, y = win32api.GetCursorPos()
 		self.event_list = [mouse.MoveEvent(x, y, time.time())]
-		_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_record, 10, 10)
+		# _overlay_add_mode_icon(self.main_overlay, IconSet.hicon_record, 10, 10)
 		# self.element_info_tooltip.hide()
 		self.main_overlay.clear_all()
 		self.main_overlay.refresh()
@@ -1104,7 +1062,11 @@ class Recorder(Thread):
 			self.started_recording_with_keyboard = False
 			_process_events(events, process_menu_click=self.process_menu_click_mode)
 			_clean_events(events)
-			print_event_list(events)
+			
+			wireshark_id=get_process_id_by_name('Wireshark.exe')
+			print_all_event_list(events)
+			print_wireshark_event_list(events,wireshark_id)
+			
 			# file_path = "events.txt"
 			# with open(file_path, "w") as file:
 			# 	for item in events:
@@ -1112,7 +1074,7 @@ class Recorder(Thread):
 			
 			return _write_in_file(events, relative_coordinate_mode=self.relative_coordinate_mode)
 		self.main_overlay.clear_all()
-		_overlay_add_mode_icon(self.main_overlay, IconSet.hicon_stop, 10, 10)
+		# _overlay_add_mode_icon(self.main_overlay, IconSet.hicon_stop, 10, 10)
 		self.main_overlay.refresh()
 		self.mode = "Stop"
 		return None
