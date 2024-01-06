@@ -1,10 +1,10 @@
 import overlay_arrows_and_more as oaam
-from pywinauto_recorder.core import path_separator, get_wrapper_path, get_entry
+from AppRecorder.core import path_separator, get_wrapper_path, get_entry
 from pywinauto import Desktop
 from win32api import GetSystemMetrics, GetCursorPos
 from time import sleep
 from multiprocessing import Process, Event
-from pywinauto_recorder.recorder import IconSet, _find_common_path, _overlay_add_mode_icon
+from AppRecorder.recorder import _find_common_path, _overlay_add_mode_icon
 import traceback
 
 wrapper_old_info_tip = None

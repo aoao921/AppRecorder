@@ -40,19 +40,19 @@ __all__ = ['Recorder']
 from .filter import ElementEvent,SendKeysEvent ,MouseWheelEvent,ClickEvent ,FindEvent ,MenuEvent,DragAndDropEvent
 
 
-class IconSet:
-	""" It loads the icons from the Icons folder and stores them in the class."""
-	if "__compiled__" in globals():
-		path_icons = os.path.dirname(os.path.realpath(__file__)) + r'\..'
-	else:
-		path_icons = os.path.dirname(os.path.realpath(__file__))
-	hicon_clipboard = oaam.load_ico(path_icons + r'\Icons\paste.ico', 48, 48)
-	hicon_light_on = oaam.load_ico(path_icons + r'\Icons\light-on.ico', 48, 48)
-	hicon_record = oaam.load_ico(path_icons + r'\Icons\record.ico', 48, 48)
-	hicon_play = oaam.load_ico(path_icons + r'\Icons\play.ico', 48, 48)
-	hicon_stop = oaam.load_ico(path_icons + r'\Icons\stop.ico', 48, 48)
-	hicon_search = oaam.load_ico(path_icons + r'\Icons\search.ico', 48, 48)
-	hicon_power = oaam.load_ico(path_icons + r'\Icons\power.ico', 48, 48)
+# class IconSet:
+# 	""" It loads the icons from the Icons folder and stores them in the class."""
+# 	if "__compiled__" in globals():
+# 		path_icons = os.path.dirname(os.path.realpath(__file__)) + r'\..'
+# 	else:
+# 		path_icons = os.path.dirname(os.path.realpath(__file__))
+# 	hicon_clipboard = oaam.load_ico(path_icons + r'\Icons\paste.ico', 48, 48)
+# 	hicon_light_on = oaam.load_ico(path_icons + r'\Icons\light-on.ico', 48, 48)
+# 	hicon_record = oaam.load_ico(path_icons + r'\Icons\record.ico', 48, 48)
+# 	hicon_play = oaam.load_ico(path_icons + r'\Icons\play.ico', 48, 48)
+# 	hicon_stop = oaam.load_ico(path_icons + r'\Icons\stop.ico', 48, 48)
+# 	hicon_search = oaam.load_ico(path_icons + r'\Icons\search.ico', 48, 48)
+# 	hicon_power = oaam.load_ico(path_icons + r'\Icons\power.ico', 48, 48)
 
 
 def _escape_special_char(string):

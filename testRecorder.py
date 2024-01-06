@@ -1,7 +1,7 @@
 
 
 # 导入需要的模块
-from pywinauto_recorder import Recorder
+from AppRecorder import Recorder
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import time
