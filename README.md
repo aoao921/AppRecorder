@@ -23,3 +23,5 @@ pip install -r requirements.txt
 输入完数据，点击开始监控按钮则开始监控
 
 可以查看app的行为日志文件，日志的格式自行理解
+
+![image-20240106180954202](img/2.png)
