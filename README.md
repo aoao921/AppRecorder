@@ -18,4 +18,8 @@ pip install -r requirements.txt
 
 ![image-20240106175449789](img/1.png)
 
-**Tip**请输入进程的完整名称，例如“Wireshark.exe”
+**Tip**: 请输入进程的完整名称，例如“Wireshark.exe”
+
+输入完数据，点击开始监控按钮则开始监控
+
+可以查看app的行为日志文件，日志的格式自行理解
