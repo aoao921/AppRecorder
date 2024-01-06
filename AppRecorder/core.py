@@ -373,7 +373,8 @@ def find_elements(full_element_path=None, visible_only=True, enabled_only=True, 
 			candidates += filter(lambda e: match_entry_list(get_entry_list(get_wrapper_path(e)), entry_list), descendants)
 		else:
 			if control_type == "OCR_Text":
-				candidates += find_ocr_elements(title, window, entry_list)
+				pass
+				# candidates += find_ocr_elements(title, window, entry_list)
 			else:
 				descendants = window.descendants(title=title, control_type=control_type)  # , depth=max(1, len(entry_list)-2)
 				candidates += filter(lambda e: match_entry_list(get_entry_list(get_wrapper_path(e)), entry_list), descendants)

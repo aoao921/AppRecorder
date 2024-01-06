@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/pywinauto_recorder.iml" filepath="$PROJECT_DIR$/.idea/pywinauto_recorder.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../AppRecorder/.idea/AppRecorder.iml" filepath="$PROJECT_DIR$/../AppRecorder/.idea/AppRecorder.iml" />
     </modules>
   </component>
 </project>
