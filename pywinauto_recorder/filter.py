@@ -4,10 +4,11 @@ import win32gui
 import win32process
 import psutil
 import time
+import codecs
 import datetime
 ElementEvent = namedtuple('ElementEvent', ['strategy', 'rectangle', 'path','time','id'])
-SendKeysEvent = namedtuple('SendKeysEvent', ['line', 'time'])
-MouseWheelEvent = namedtuple('MouseWheelEvent', ['delta','time'])
+SendKeysEvent = namedtuple('SendKeysEvent', ['line', 'time','id'])
+MouseWheelEvent = namedtuple('MouseWheelEvent', ['delta','time','id'])
 DragAndDropEvent = namedtuple('DragAndDropEvent', ['path', 'dx1', 'dy1', 'path2', 'dx2', 'dy2','time'])
 ClickEvent = namedtuple('ClickEvent', ['button', 'click_count', 'path', 'dx', 'dy', 'time','id'])
 FindEvent = namedtuple('FindEvent', ['path', 'dx', 'dy', 'time'])
@@ -62,79 +63,74 @@ def get_child_process_ids(parent_process_id):
 
 def print_all_event_list(event_list):
     # print(event_list)
-    with open("events.txt", "w") as file:
+    with codecs.open("events.txt", 'a', 'utf-8') as file:
         for event in event_list:
-            
             event_time = datetime.datetime.fromtimestamp(event.time)
             formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
        
             if isinstance(event, ElementEvent):
                 
-                file.write(f"{formatted_time} - ElementEvent: path={event.path} - id={event.id}\n".encode('gbk','ignore').decode('gbk', 'ignore'))
+                file.write(f"{formatted_time} - ElementEvent: path={event.path} - id={event.id}\n")
             elif isinstance(event, SendKeysEvent):
                 file.write(
-                    f"{formatted_time} - SendKeysEvent: line={event.line} \n".encode('gbk', 'ignore').decode('gbk', 'ignore'))
+                    f"{formatted_time} - SendKeysEvent: line={event.line} - id={event.id}\n")
             
             elif isinstance(event, MouseWheelEvent):
                 file.write(
-                    f"{formatted_time} - MouseWheelEvent: delta={event.delta}\n".encode('gbk', 'ignore').decode('gbk',
-                                                                                                                'ignore'))
+                    f"{formatted_time} - MouseWheelEvent: delta={event.delta} - id={event.id}\n")
             elif isinstance(event, DragAndDropEvent):
             	file.write(
 
-            		f"{formatted_time} - DragAndDropEvent: path={event.path} - dx1={event.dx1} - dy1={event.dy1} - path2={event.path2} - dx2={event.dx2} - dy2={event.dy2}\n".encode('gbk', 'ignore').decode('gbk','ignore'))
+            		f"{formatted_time} - DragAndDropEvent: path={event.path} - dx1={event.dx1} - dy1={event.dy1} - path2={event.path2} - dx2={event.dx2} - dy2={event.dy2}\n")
             elif isinstance(event, ClickEvent):
                 file.write(
-                    f"{formatted_time} - ClickEvent: button={event.button} - click_count={event.click_count} - path={event.path} id={event.id}\n".encode(
-                        'gbk', 'ignore').decode('gbk', 'ignore'))
+                    f"{formatted_time} - ClickEvent: button={event.button} - click_count={event.click_count} - path={event.path} id={event.id}\n")
             elif isinstance(event, FindEvent):
                 file.write(
-                    f"{formatted_time} - FindEvent: path={event.path} - dx={event.dx} - dy={event.dy} - time={formatted_time}\n".encode(
-                        'gbk', 'ignore').decode('gbk', 'ignore'))
+                    f"{formatted_time} - FindEvent: path={event.path} - dx={event.dx} - dy={event.dy} - time={formatted_time}\n")
             elif isinstance(event, MenuEvent):
                 file.write(
                     f"{formatted_time} - MenuEvent: path={event.path} - menu_path={event.menu_path} - id={event.id}\n")
             else:
                 pass
-def print_wireshark_event_list(event_list,wireshark_id):
+        # gbk_to_utf8("events.txt", "events.txt")
+def print_certain_event_list(BasePath,event_list,process_name,process_id):
     # wireshark_id = get_process_id_by_name('Wireshark.exe')
+    filename=BasePath+"\\events_"+process_name+".txt"
     
-    with open("events_wireshark.txt", "w") as file:
+    with codecs.open(filename, 'a', 'utf-8') as file:
         for event in event_list:
             event_time = datetime.datetime.fromtimestamp(event.time)
             formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
-            if hasattr(event, 'id') and event.id != wireshark_id:
+            if hasattr(event, 'id') and event.id != process_id:
                 continue
             if isinstance(event, ElementEvent):
-                file.write(f"{formatted_time} - ElementEvent: path={event.path} - id={event.id}\n".encode('gbk',
-                                                                                                          'ignore').decode(
-                    'gbk', 'ignore'))
+                file.write(f"{formatted_time} - ElementEvent: path={event.path} - id={event.id}\n")
             elif isinstance(event, SendKeysEvent):
                
                 file.write(
-                    f"{formatted_time} - SendKeysEvent: line={event.line} \n".encode('gbk', 'ignore').decode('gbk',
-                                                                                                             'ignore'))
+                    f"{formatted_time} - SendKeysEvent: line={event.line} - id={event.id}\n")
             
             elif isinstance(event, MouseWheelEvent):
                 
                 formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
                 file.write(
-                    f"{formatted_time} - MouseWheelEvent: delta={event.delta}\n".encode('gbk', 'ignore').decode('gbk',
-                                                                                                                'ignore'))
+                    f"{formatted_time} - MouseWheelEvent: delta={event.delta}- id={event.id}\n")
 
             elif isinstance(event, ClickEvent):
                 file.write(
-                    f"{formatted_time} - ClickEvent: button={event.button} - click_count={event.click_count} - path={event.path} id={event.id}\n".encode(
-                        'gbk', 'ignore').decode('gbk', 'ignore'))
+                    f"{formatted_time} - ClickEvent: button={event.button} - click_count={event.click_count} - path={event.path} id={event.id}\n")
             
             elif isinstance(event, FindEvent):
         
                 file.write(
-                    f"{formatted_time} - FindEvent: path={event.path} - dx={event.dx} - dy={event.dy} - time={formatted_time}\n".encode(
-                        'gbk', 'ignore').decode('gbk', 'ignore'))
+                    f"{formatted_time} - FindEvent: path={event.path} - dx={event.dx} - dy={event.dy} - time={formatted_time}\n")
             
             elif isinstance(event, MenuEvent):
                 file.write(
                     f"{formatted_time} - MenuEvent: path={event.path} - menu_path={event.menu_path} - id={event.id}\n")
             else:
                 pass
+    
+
+

@@ -23,9 +23,11 @@ from .core import path_separator, type_separator, Strategy, is_int, \
 	get_wrapper_path, get_entry_list, get_entry, get_sorted_region, \
 	read_config_file
 from .core import find_elements as not_ttl_cached_find_elements
-from .player import playback
+
 from cachetools import func
-from .filter import get_window_handle_by_title,get_process_id_from_window_handle,get_process_id_from_window_title,get_process_id_by_name,print_all_event_list,print_wireshark_event_list
+from .filter import get_window_handle_by_title, get_process_id_from_window_handle, get_process_id_from_window_title, \
+	get_process_id_by_name, print_all_event_list, print_certain_event_list
+
 
 @func.ttl_cache(ttl=10)
 def find_elements(full_element_path=None, visible_only=True, enabled_only=True, active_only=True):
@@ -73,90 +75,9 @@ def _compute_dx_dy(x, y, rectangle):
 
 
 def _write_in_file(events, relative_coordinate_mode=False):
-	from pathlib import Path
-	home_dir = Path.home() / 'Pywinauto recorder'
-	home_dir.mkdir(parents=True, exist_ok=True)
-	record_file_name = home_dir / Path('recorded ' + time.asctime().replace(':', '_') + '.py')
-	print('Recording in file: ' + str(record_file_name.absolute()))
-	script = "# encoding: {}\n\n".format(sys.getdefaultencoding())
-	script += "from pywinauto_recorder.player import *\n\n"
-	common_path = ''
-	common_window = ''
-	common_region = ''
-	i = 0
-	while i < len(events):
-		e_i = events[i]
-		if type(e_i) in (DragAndDropEvent, ClickEvent, FindEvent, MenuEvent):
-			if e_i.path != common_path:
-				new_common_path = _find_new_common_path_in_next_user_events(events, i)
-				if new_common_path != common_path:
-					common_path = new_common_path
-					entry_list = get_entry_list(common_path)
-					e_i_window = entry_list[0]
-					if e_i_window != common_window:
-						common_window = e_i_window
-						script += '\nwith UIPath(u"' + _escape_special_char(common_window) + '"):\n'
-					e_i_region = path_separator.join(entry_list[1:])
-					if e_i_region != common_region and e_i_region:
-						common_region = e_i_region
-						script += '\twith UIPath(u"' + _escape_special_char(common_region) + '"):\n'
-					else:
-						common_region = ''
-		if type(e_i) in (SendKeysEvent, MouseWheelEvent, DragAndDropEvent, ClickEvent, FindEvent, MenuEvent):
-			if common_window:
-				script += '\t'
-				if common_region:
-					script += '\t'
-			if isinstance(e_i, SendKeysEvent):
-				script += 'send_keys(' + e_i.line + ')\n'
-			elif isinstance(e_i, MouseWheelEvent):
-				script += 'mouse_wheel(' + str(e_i.delta) + ')\n'
-			elif isinstance(e_i, DragAndDropEvent):
-				p1, p2 = e_i.path, e_i.path2
-				dx1, dy1 = "{:.2f}".format(round(e_i.dx1 * 100, 2)), "{:.2f}".format(round(e_i.dy1 * 100, 2))
-				dx2, dy2 = "{:.2f}".format(round(e_i.dx2 * 100, 2)), "{:.2f}".format(round(e_i.dy2 * 100, 2))
-				if common_path:
-					p1 = _get_relative_path(common_path, p1)
-					p2 = _get_relative_path(common_path, p2)
-				script += 'drag_and_drop(u"' + _escape_special_char(p1)
-				if relative_coordinate_mode and eval(dx1) != 0 and eval(dy1) != 0:
-					script += '%(' + dx1 + ',' + dy1 + ')'
-				script += '", u"' + _escape_special_char(p2)
-				if relative_coordinate_mode and eval(dx2) != 0 and eval(dy2) != 0:
-					script += '%(' + dx2 + ',' + dy2 + ')'
-				script += '")\n'
-			elif isinstance(e_i, ClickEvent):
-				p = e_i.path
-				dx, dy = "{:.2f}".format(round(e_i.dx * 100, 2)), "{:.2f}".format(round(e_i.dy * 100, 2))
-				if common_path:
-					p = _get_relative_path(common_path, p)
-				str_c = ['', '', 'double_', 'triple_']
-				if e_i.button == 'left':
-					if e_i.count == 1:
-						script += 'click(u"' + _escape_special_char(p)
-					else:
-						script += str_c[e_i.click_count] + 'click(u"' + _escape_special_char(p)
-				else:
-					script += str_c[e_i.click_count] + e_i.button + '_click(u"' + _escape_special_char(p)
-				if relative_coordinate_mode and eval(dx) != 0 and eval(dy) != 0:
-					script += '%(' + dx + ',' + dy + ')'
-				script += '")\n'
-			elif isinstance(e_i, FindEvent):
-				p = e_i.path
-				dx, dy = "{:.2f}".format(round(e_i.dx * 100, 2)), "{:.2f}".format(round(e_i.dy * 100, 2))
-				if common_path:
-					p = _get_relative_path(common_path, p)
-				script += 'wrapper = find(u"' + _escape_special_char(p)
-				if relative_coordinate_mode and eval(dx) != 0 and eval(dy) != 0:
-					script += '%(' + dx + ',' + dy + ')'
-				script += '")\n'
-			elif isinstance(e_i, MenuEvent):
-				script += 'menu_click(u"' + _escape_special_char(e_i.menu_path) + '")\n'
-		i += 1
-	with codecs.open(record_file_name, "w", encoding=sys.getdefaultencoding()) as f:
-		f.write(script)
-	pyperclip.copy(script)
-	return record_file_name
+	pass
+
+
 
 
 def _clean_events(events, remove_first_up=False):
@@ -221,6 +142,16 @@ def _process_events(events, process_menu_click=True):
 
 
 def _process_keyboard_events(events, i):
+	# 查找最近的elementevent
+	i0 = i - 1
+	element_event_before_sendKey=None
+	while i0 >= 0:
+		if isinstance(events[i0], ElementEvent):
+			# 查找紧随up事件前的element事件
+			element_event_before_sendKey = events[i0]
+			break
+		else:
+			i0=i0-1
 	keyboard_events = [events[i]]
 	i0 = i + 1
 	i_processed_events = []
@@ -237,10 +168,19 @@ def _process_keyboard_events(events, i):
 	for i_p_e in sorted(i_processed_events, reverse=True):
 		del events[i_p_e]
 	if line:
-		events[i] = SendKeysEvent(line=line, time=events[i].time)
+		events[i] = SendKeysEvent(line=line, time=events[i].time,id=get_process_id_from_window_title((element_event_before_sendKey.path).split("||")[0]))
 
 
 def _process_wheel_events(events, i):
+	i0 = i - 1
+	element_event_before_wheel = None
+	while i0 >= 0:
+		if isinstance(events[i0], ElementEvent):
+			# 查找紧随up事件前的element事件
+			element_event_before_wheel = events[i0]
+			break
+		else:
+			i0 = i0 - 1
 	delta = events[i].delta
 	i_processed_events = []
 	i0 = i + 1
@@ -255,7 +195,11 @@ def _process_wheel_events(events, i):
 			break
 	for i_p_e in sorted(i_processed_events, reverse=True):
 		del events[i_p_e]
-	events[i] = MouseWheelEvent(delta=delta,time=events[i].time)
+	try:
+		events[i] = MouseWheelEvent(delta=delta,time=events[i].time,id=get_process_id_from_window_title((element_event_before_wheel.path).split("||")[0]))
+	except AttributeError as e:
+		print("发生了属性错误：", e)
+		
 
 
 def _process_drag_and_drop_or_click_events(events, i):
@@ -316,7 +260,7 @@ def _process_drag_and_drop_or_click_events(events, i):
 		dx, dy = _compute_dx_dy(move_event_end.x, move_event_end.y, element_event_before_button_down.rectangle)
 		events[i] = ClickEvent(
 			button=up_event.button, click_count=click_count,
-			path=element_event_before_button_down.path, dx=dx, dy=dy, time=up_event.time,id=get_process_id_from_window_title(element_event_before_button_down.path.split("||")[0]))
+			path=element_event_before_button_down.path, dx=dx, dy=dy, time=up_event.time,id=get_process_id_from_window_title((element_event_before_button_down.path).split("||")[0]))
 	i_processed_events = []
 	i0 = i - 1
 	while i0 >= i1:
@@ -576,33 +520,9 @@ def _overlay_add_mode_icon(main_overlay, hicon, x, y):
 
 
 class Recorder(Thread):
-	"""
-	Recorder is a class thread used to record UI events in clipboard or in a file.
-
-	.. code-block:: python
-		:caption: Example of code using 'Recorder'::
-		
-		from pywinauto_recorder.recorder import Recorder
-		from pywinauto_recorder.player import UIPath, click, move, playback
-
-		recorder = Recorder()
-		recorder.start_recording()
-		with UIPath("Untitled - Notepad||Window"):
-			doc = move("Text editor||Document")
-			time.sleep(0.5)
-			click(doc)
-			utf8 = move("||Pane-> UTF-8||Text")
-			time.sleep(0.5)
-			click(utf8)
-		recorded_python_script = recorder.stop_recording()
-		recorder.quit()
-		playback(filename=recorded_python_script)
-
-	The above code clicks on the text field and then on 'utf8'.
-	All these events are recorded in a file. Then the file is replayed.
-	"""
 	
-	def __init__(self):
+	
+	def __init__(self,base_path, process_list):
 		from .element_observer import ElementInfoTooltip
 		Thread.__init__(self)
 		from win32api import GetSystemMetrics
@@ -622,6 +542,9 @@ class Recorder(Thread):
 		self.common_path_info_tip = ""
 		self.last_element_event = None
 		self.started_recording_with_keyboard = False
+		self.base_path = base_path
+		self.process_list = process_list
+		# self.frequency = frequency
 		# self.element_info_tooltip = ElementInfoTooltip()
 		self.start()
 	
@@ -757,47 +680,7 @@ class Recorder(Thread):
 		elif self.mode == "Record":
 			self.event_list.append(e)
 	
-	# Ne fonctionne pas dans tous les cas car un rectangle pere n'englobe pas forcement un rectangle fils
-	# (par exemple un TreeItem) Mais peut être utilisé en ultime recour
-	'''
-	def my_from_point(self, x, y, wrapper=None):
-		def get_children_of_children_whith_empty_rectangle(wrapper_children):
-			children_of_children_whith_empty_rectangle = []
-			for child in wrapper_children:
-				child_rectangle = child.rectangle()
-				if child_rectangle.width() ==0 or child_rectangle.width()==0:
-					children_of_children_whith_empty_rectangle += child.children()
-			return children_of_children_whith_empty_rectangle
-		def get_children_of_children_not_in_parent_rectangle(wrapper_children):
-			children_of_children_whith_empty_rectangle = []
-			for child in wrapper_children:
-				child_rectangle = child.rectangle()
-				grandchildren = child.children()
-				if grandchildren:
-					x = grandchildren[0].rectangle().left
-					y = grandchildren[0].rectangle().top
-					if not ((child_rectangle.left < x < child_rectangle.right) and (child_rectangle.top < y < child_rectangle.bottom)):
-						return grandchildren
-			return []
-		if not wrapper:
-			wrapper = self.desktop.top_from_point(x, y)
-		wrapper_children = wrapper.children()
-		for child in wrapper_children:
-			child_rectangle = child.rectangle()
-			if (child_rectangle.left < x < child_rectangle.right) and (child_rectangle.top < y < child_rectangle.bottom):
-				return self.my_from_point(x, y, wrapper=child)
-		for grandchild in get_children_of_children_whith_empty_rectangle(wrapper_children):
-			child_rectangle = grandchild.rectangle()
-			if (child_rectangle.left < x < child_rectangle.right) and (child_rectangle.top < y < child_rectangle.bottom):
-				return self.my_from_point(x, y, wrapper=grandchild)
-			
-		for grandchild in get_children_of_children_not_in_parent_rectangle(wrapper_children):
-			child_rectangle = grandchild.rectangle()
-			if (child_rectangle.left < x < child_rectangle.right) and (child_rectangle.top < y < child_rectangle.bottom):
-				return self.my_from_point(x, y, wrapper=grandchild)
-
-		return wrapper
-	'''
+	
 	
 	def run(self):
 		"""
@@ -1063,11 +946,22 @@ class Recorder(Thread):
 			_process_events(events, process_menu_click=self.process_menu_click_mode)
 			_clean_events(events)
 			
-			wireshark_id=get_process_id_by_name('Wireshark.exe')
-			print_all_event_list(events)
-			print_wireshark_event_list(events,wireshark_id)
-			
-			# file_path = "events.txt"
+			for process_name in self.process_list:
+				# print(1)
+				# pass
+				process_id=get_process_id_by_name(process_name)
+				print(self.base_path,events, process_name, process_id)
+				
+				print_certain_event_list(self.base_path,events, process_name, process_id)
+			# wireshark_id=get_process_id_by_name('Wireshark.exe')
+			# Fiddle_id=get_process_id_by_name("Fiddler.exe")
+			# CanKing_id=get_process_id_by_name("wc32.exe")
+			# print(CanKing_id)
+			# print_all_event_list(events)
+			# print_certain_event_list(events,"Wireshark",wireshark_id)
+			# print_certain_event_list(events, "Fiddler", Fiddle_id)
+			# print_certain_event_list(events,"CanKing",CanKing_id)
+			# gbk_to_utf8("events_wireshark.txt","events_wireshark.txt")
 			# with open(file_path, "w") as file:
 			# 	for item in events:
 			# 		file.write(str(item) + "\n")  #写入元素并换行
@@ -1086,17 +980,6 @@ class Recorder(Thread):
 		"""
 		return self.last_element_event
 	
-	def playback(self, str_code='', filename=''):
-		"""
-		This function plays back a string of code or a Python file.
-		
-		:param str_code: The code to be played back
-		:param filename: The name of the file coresponding to the code to be played back
-		"""
-		self.mode = "Play"
-		self.main_overlay.refresh()
-		playback(str_code, filename)
-		self.mode = "Stop"
 	
 	def quit(self):
 		"""
