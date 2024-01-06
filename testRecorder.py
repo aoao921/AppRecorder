@@ -97,10 +97,10 @@ if __name__ == '__main__':
 
 	# 开始录制
 	# while True:
-	recorder.start_recording()
-
-	time.sleep(frequency)
-	filename = recorder.stop_recording()
+	while True:
+		recorder.start_recording()
+		time.sleep(frequency)
+		filename = recorder.stop_recording()
 	recorder.quit()
 
 

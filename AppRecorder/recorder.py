@@ -688,11 +688,12 @@ class Recorder(Thread):
 		"""
 		import comtypes.client
 		print("")
-		print("COMPTYPES CACHE FOLDER:", comtypes.client._code_cache._find_gen_dir())
-		
+		# print("COMPTYPES CACHE FOLDER:", comtypes.client._code_cache._find_gen_dir())
+		print(("Start Recording..."))
 		dir_path = os.path.dirname(os.path.realpath(__file__))
-		print("PYWINAUTO RECORDER FOLDER:", dir_path)
-		
+		print("APP RECORDER FOLDER:", dir_path)
+		print("日志保存路径",self.base_path)
+		print("监控进程列表",self.process_list)
 		keyboard.hook(self.__key_on)
 		mouse.hook(self.__mouse_on)
 		keyboard.start_recording()
