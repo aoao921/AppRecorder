@@ -7,7 +7,7 @@ from tkinter import filedialog, messagebox
 import time
 process_list = []
 base_path =''
-frequency = 10
+frequency = 20
 
 def add_process():
 	process_name = entry_process.get()
@@ -19,17 +19,19 @@ def add_process():
 		messagebox.showerror("错误", "进程名不能为空")
 
 
-def select_base_path():
-	base_path = filedialog.askdirectory()
-	entry_base_path.delete(0, tk.END)
-	entry_base_path.insert(0, base_path)
-
 
 def start_monitor():
-	global base_path
-	global frequency
-	base_path = entry_base_path.get()
-	frequency = int(entry_frequency.get())
+	while True:
+		global base_path
+		global frequency
+		base_path = entry_base_path.get()
+		frequency = entry_frequency.get()
+		if not base_path and not frequency:
+			messagebox.showerror("错误", "请完成输入")
+			return
+		else:
+			frequency=int(frequency)
+			break
 	# 关闭窗口
 	window.destroy()
 	# 创建Recorder对象
@@ -59,9 +61,6 @@ def gui():
 
 	entry_base_path = tk.Entry(window)
 	entry_base_path.grid(row=0, column=1)
-
-	# button_select_base_path = tk.Button(window, text="...", command=select_base_path)
-	# button_select_base_path.grid(row=0, column=2)
 
 	# 监控的App进程名字列表
 	label_process = tk.Label(window, text="监控的App进程:")
@@ -101,6 +100,8 @@ if __name__ == '__main__':
 		recorder.start_recording()
 		time.sleep(frequency)
 		filename = recorder.stop_recording()
+		print("完成一次日志写入")
+		time.sleep(1)
 	recorder.quit()
 
 

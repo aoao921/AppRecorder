@@ -14,7 +14,11 @@ ClickEvent = namedtuple('ClickEvent', ['button', 'click_count', 'path', 'dx', 'd
 FindEvent = namedtuple('FindEvent', ['path', 'dx', 'dy', 'time'])
 MenuEvent = namedtuple('MenuEvent', ['path', 'menu_path','time','id'])
 
-
+def is_process_running(process_name):
+    for proc in psutil.process_iter(['name']):
+        if proc.info['name'] == process_name:
+            return True
+    return False
 def get_process_id_from_window_title(title):
 	handle = win32gui.FindWindow(None, title)
 	thread_id, process_id = win32process.GetWindowThreadProcessId(handle)
@@ -100,9 +104,11 @@ def print_certain_event_list(BasePath,event_list,process_name,process_id):
     
     with codecs.open(filename, 'a', 'utf-8') as file:
         for event in event_list:
+            
+            special_app_id=get_process_id_by_name("ApplicationFrameHost.exe")
             event_time = datetime.datetime.fromtimestamp(event.time)
             formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
-            if hasattr(event, 'id') and event.id != process_id:
+            if hasattr(event, 'id') and event.id != process_id and event.id !=special_app_id :
                 continue
             if isinstance(event, ElementEvent):
                 file.write(f"{formatted_time} - ElementEvent: path={event.path} - id={event.id}\n")

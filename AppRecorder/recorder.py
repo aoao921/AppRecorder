@@ -26,7 +26,7 @@ from .core import find_elements as not_ttl_cached_find_elements
 
 from cachetools import func
 from .filter import get_window_handle_by_title, get_process_id_from_window_handle, get_process_id_from_window_title, \
-	get_process_id_by_name, print_all_event_list, print_certain_event_list
+	get_process_id_by_name, print_all_event_list, print_certain_event_list, is_process_running
 
 
 @func.ttl_cache(ttl=10)
@@ -948,12 +948,15 @@ class Recorder(Thread):
 			_clean_events(events)
 			
 			for process_name in self.process_list:
-				# print(1)
-				# pass
-				process_id=get_process_id_by_name(process_name)
-				print(self.base_path,events, process_name, process_id)
-				
-				print_certain_event_list(self.base_path,events, process_name, process_id)
+				# 判断进程是否在运行
+				if not is_process_running(process_name):
+					continue
+				else:
+					process_id = get_process_id_by_name(process_name)
+					print(events)
+					# print(self.base_path, events, process_name, process_id)
+					print_certain_event_list(self.base_path, events, process_name, process_id)
+					
 			# wireshark_id=get_process_id_by_name('Wireshark.exe')
 			# Fiddle_id=get_process_id_by_name("Fiddler.exe")
 			# CanKing_id=get_process_id_by_name("wc32.exe")
