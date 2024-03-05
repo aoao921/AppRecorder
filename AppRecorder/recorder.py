@@ -9,7 +9,7 @@ import traceback
 import time
 import win32api
 import win32gui
-import win32con
+# import win32con
 from threading import Thread
 import pywinauto
 import overlay_arrows_and_more as oaam
@@ -690,14 +690,14 @@ class Recorder(Thread):
 		print("")
 		# print("COMPTYPES CACHE FOLDER:", comtypes.client._code_cache._find_gen_dir())
 		print(("Start Recording..."))
-		dir_path = os.path.dirname(os.path.realpath(__file__))
+		dir_path = os.getcwd()
 		print("APP RECORDER FOLDER:", dir_path)
 		print("日志保存路径",self.base_path)
 		print("监控进程列表",self.process_list)
 		keyboard.hook(self.__key_on)
 		mouse.hook(self.__mouse_on)
 		keyboard.start_recording()
-		win32api.keybd_event(160, 0, win32con.KEYEVENTF_EXTENDEDKEY | win32con.KEYEVENTF_KEYUP, 0)
+		# win32api.keybd_event(160, 0, win32con.KEYEVENTF_EXTENDEDKEY | win32con.KEYEVENTF_KEYUP, 0)
 		ev_list = keyboard.stop_recording()
 		if not ev_list and os.path.isfile(dir_path + r"\pywinauto_recorder.exe"):
 			print("Couldn't set keyboard hooks. Trying once again...\n")

@@ -392,11 +392,11 @@ def read_config_file():
 	"""
 	global core_settings
 	config_file_content = '''
-	[setting]
-	process_list = ['Wireshark.exe']
-	base_path ='C:\\Users\\u2020\\test'
-	frequency = 20
-	    '''
+[setting]
+process_list = Wireshark.exe
+base_path ='''+os.getcwd()+'''
+frequency = 20
+'''
 	from pathlib import Path
 	config_file = Path.cwd() / 'config.ini'
 	
@@ -420,6 +420,9 @@ def read_config_file():
 		file_path = os.path.join(os.path.abspath('.'), 'config.ini')
 		with open(file_path, 'w') as out_file:
 			out_file.write(config_file_content)
+		core_settings.process_list = ['Wireshark.exe']
+		core_settings.base_path = os.getcwd()
+		core_settings.frequency = 20
 		return core_settings
 
 
