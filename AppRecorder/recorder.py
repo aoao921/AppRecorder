@@ -997,4 +997,4 @@ class Recorder(Thread):
 		print("Quit")
 
 
-read_config_file()
+# read_config_file()

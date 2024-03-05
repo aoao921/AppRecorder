@@ -2,12 +2,12 @@
 
 import re
 from enum import Enum
-import configparser
+from configparser import ConfigParser
+import os
 import ast
 from pywinauto import Desktop as PywinautoDesktop
 from pywinauto.controls.uiawrapper import UIAWrapper
 from pywinauto import findwindows
-
 
 __all__ = ['path_separator', 'type_separator', 'Strategy', 'is_int', 'is_absolute_path',
            'get_wrapper_path', 'get_entry_list', 'get_entry', 'match_entry_list', 'get_sorted_region',
@@ -17,10 +17,9 @@ desktop = PywinautoDesktop(backend='uia', allow_magic_lookup=False)
 
 
 class CoreSettings:
-	class window_filtering:
-		mode = 'ignore_windows'
-		admit_windows = []
-		ignore_windows = []
+	process_list = []
+	base_path = ''
+	frequency = 20
 
 
 path_separator = "->"
@@ -38,7 +37,7 @@ def get_wrapper_path(wrapper):
 	"""
 	It takes a UI Automation wrapper object and returns a string that represents the path to the element from the root of
 	the UI Automation tree
-	
+
 	:param wrapper: The UIAutomation wrapper object
 	:return: The path of the wrapper from the top level parent to the wrapper.
 	"""
@@ -57,7 +56,7 @@ def get_entry_list(path):
 	"""
 	It splits the path into a list of entries
 	It only handles one #[y,x] at the end. It does not handle the #[y,x] in the middle.
-	
+
 	:param path: the path to the element
 	:return: A list of the entries.
 	"""
@@ -98,7 +97,7 @@ def is_absolute_path(entry):
 def get_entry(entry):
 	"""
 	It takes a string of the form "name"#["y",x]%(dx,dy)~Absolute_UIPath and returns a tuple of the form (name, type, [y,x], (dx,dy))
-	
+
 	:param entry: the string that is the entry in the listbox
 	:return: The name of the entry, the type of the entry, the size of the entry, and the dx and dy of the entry.
 	"""
@@ -154,7 +153,7 @@ def get_entry(entry):
 def is_regex_entry(entry):
 	"""
 	It returns True if the first seven characters of the string entry are "RegEx: " and False otherwise
-	
+
 	:param entry: The entry to check
 	:return: A boolean value.
 	"""
@@ -164,7 +163,7 @@ def is_regex_entry(entry):
 def match_entry(entry, template):
 	"""
 	It returns true if the entry matches the template, and false otherwise
-	
+
 	:param entry: the entry to be matched
 	:param template: the template to match against
 	:return: A boolean value.
@@ -204,9 +203,9 @@ def match_entry_list(l1, l2):
 def is_filter_criteria_ok(child, min_height=8, max_height=200, min_width=8, max_width=800):
 	"""
 	"Return True if the child is visible and its height and width are within the specified ranges."
-	
+
 	The function is_filter_criteria_ok() takes four arguments:
-	
+
 	child: the child to check
 	min_height: the minimum height of the child
 	max_height: the maximum height of the child
@@ -214,7 +213,7 @@ def is_filter_criteria_ok(child, min_height=8, max_height=200, min_width=8, max_
 	max_width: the maximum width of the child
 	The function returns True if the child is visible and its height and width are within the specified ranges. Otherwise,
 	it returns False
-	
+
 	:param child: the child element to check
 	:param min_height: The minimum height of the element, defaults to 8 (optional)
 	:param max_height: The maximum height of the element, defaults to 200 (optional)
@@ -234,7 +233,7 @@ def is_filter_criteria_ok(child, min_height=8, max_height=200, min_width=8, max_
 def all_height_equal(iterator):
 	"""
 	It returns True if all the elements in the iterator have the same height, and False otherwise
-	
+
 	:param iterator: an iterable object
 	:return: A boolean value.
 	"""
@@ -254,7 +253,7 @@ def get_sorted_region(elements, min_height=8, max_height=9999, min_width=8, max_
 	"""
 	It takes a list of elements, filters them based on the given criteria, sorts them by top and left, and then returns a
 	list of lists of elements, where each list is a row of elements
-	
+
 	:param elements: the list of elements to be sorted
 	:param min_height: The minimum height of the elements to be considered, defaults to 8 (optional)
 	:param max_height: The maximum height of the elements in the region, defaults to 9999 (optional)
@@ -296,7 +295,7 @@ def get_sorted_region(elements, min_height=8, max_height=9999, min_width=8, max_
 def find_window_candidates(root_entry, visible_only=True, enabled_only=True, active_only=True):
 	"""
 	It returns a list of windows that match the given root entry
-	
+
 	:param root_entry: The root entry of the window you want to find
 	:param visible_only: If True, only visible windows are returned, defaults to True (optional)
 	:param enabled_only: If True, only enabled controls are returned, defaults to True (optional)
@@ -327,22 +326,20 @@ def find_window_candidates(root_entry, visible_only=True, enabled_only=True, act
 def filter_window_candidates(window_candidates):
 	"""
 	It filters out windows that are not in the list of admitted windows, or that are in the list of ignored windows
-	
+
 	:param window_candidates: a list of Window objects
 	:return: A list of window candidates that have been filtered.
 	"""
-	global core_settings
-	if core_settings.window_filtering.mode == 'admit_windows':
-		window_candidates = list(filter(
-			lambda w: any(substr in w.element_info.name for substr in core_settings.window_filtering.admit_windows),
-			window_candidates))
-	else:
-		window_candidates = list(filter(
-			lambda w: not any(substr in w.element_info.name for substr in core_settings.window_filtering.ignore_windows),
-			window_candidates))
+	# global core_settings
+	# if core_settings.window_filtering.mode == 'admit_windows':
+	# 	window_candidates = list(filter(
+	# 		lambda w: any(substr in w.element_info.name for substr in core_settings.window_filtering.admit_windows),
+	# 		window_candidates))
+	# else:
+	# 	window_candidates = list(filter(
+	# 		lambda w: not any(substr in w.element_info.name for substr in core_settings.window_filtering.ignore_windows),
+	# 		window_candidates))
 	return window_candidates
-
-
 
 
 def find_elements(full_element_path=None, visible_only=True, enabled_only=True, active_only=True):
@@ -363,18 +360,19 @@ def find_elements(full_element_path=None, visible_only=True, enabled_only=True, 
 	window_candidates = filter_window_candidates(window_candidates)
 	if len(entry_list) == 1 and len(window_candidates) == 1:
 		return [window_candidates[0]]
-
+	
 	candidates = []
 	title, control_type, _, _ = get_entry(entry_list[-1])
 	for window in window_candidates:
 		if is_regex_entry(entry_list[-1]):
-			eis = findwindows.find_elements(title_re=title, control_type=control_type, backend="uia", parent=window, top_level_only=False)
+			eis = findwindows.find_elements(title_re=title, control_type=control_type, backend="uia", parent=window,
+			                                top_level_only=False)
 			descendants = [UIAWrapper(ei) for ei in eis]
 			candidates += filter(lambda e: match_entry_list(get_entry_list(get_wrapper_path(e)), entry_list), descendants)
 		else:
 			if control_type == "OCR_Text":
 				pass
-				# candidates += find_ocr_elements(title, window, entry_list)
+			# candidates += find_ocr_elements(title, window, entry_list)
 			else:
 				descendants = window.descendants(title=title, control_type=control_type)  # , depth=max(1, len(entry_list)-2)
 				candidates += filter(lambda e: match_entry_list(get_entry_list(get_wrapper_path(e)), entry_list), descendants)
@@ -393,43 +391,36 @@ def read_config_file():
 	It reads the configuration file and stores the settings in the global variable `core_settings`
 	"""
 	global core_settings
-	config_file_content = '''[window_filtering]
-    mode = ignore_windows
-    admit_windows = []
-    ignore_windows = []
-    '''
+	config_file_content = '''
+	[setting]
+	process_list = ['Wireshark.exe']
+	base_path ='C:\\Users\\u2020\\test'
+	frequency = 20
+	    '''
 	from pathlib import Path
-	config_file = Path.home() / 'Pywinauto recorder' / 'config.ini'
-	if config_file.exists and config_file.is_file():
-		print("Reading configuration file: " + str(config_file))
-		config = configparser.RawConfigParser()
-		config.read(config_file)
+	config_file = Path.cwd() / 'config.ini'
+	
+	conn = ConfigParser()
+	file_path = os.path.join(os.path.abspath('.'), 'config.ini')
+	if os.path.exists(file_path):
+		conn.read(file_path)
+		process_list = conn.get('setting', 'process_list')
+		base_path = conn.get('setting', 'base_path')
+		frequency = conn.get('setting', 'frequency')
+		string_list = process_list.split(',')
 		
-		# config.read_string(ini_config)
-		
-		class Dict2Obj:
-			def __init__(self, in_dict: dict):
-				assert isinstance(in_dict, dict)
-				for key, val in in_dict.items():
-					if isinstance(val, (list, tuple)):
-						setattr(self, key, [Dict2Obj(x) if isinstance(x, dict) else x for x in val])
-					else:
-						setattr(self, key, Dict2Obj(val) if isinstance(val, dict) else val)
-		
-		core_settings = Dict2Obj({s: dict(config.items(s)) for s in config.sections()})
-		print("Window filtering mode: " + core_settings.window_filtering.mode)
-		if core_settings.window_filtering.mode == "admit_windows":
-			print("Admitted windows: " + core_settings.window_filtering.admit_windows)
-			core_settings.window_filtering.admit_windows = ast.literal_eval(core_settings.window_filtering.admit_windows)
-		else:
-			print("Ignored windows: " + core_settings.window_filtering.ignore_windows)
-			core_settings.window_filtering.ignore_windows = ast.literal_eval(core_settings.window_filtering.ignore_windows)
+		# 去除列表中的空格
+		process_list = [item.strip() for item in string_list]
+		core_settings.process_list = process_list
+		core_settings.base_path = base_path
+		core_settings.frequency = frequency
+		return core_settings
 	else:
 		print("Warning: '" + str(config_file) + "' not found! This file is created with a default configuration!")
-		home_dir = Path.home() / 'Pywinauto recorder'
-		home_dir.mkdir(parents=True, exist_ok=True)
-		with open(config_file, 'w') as out_file:
+		file_path = os.path.join(os.path.abspath('.'), 'config.ini')
+		with open(file_path, 'w') as out_file:
 			out_file.write(config_file_content)
+		return core_settings
 
 
 core_settings = CoreSettings()
