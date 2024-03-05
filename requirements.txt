@@ -10,3 +10,4 @@ Pillow
 enum34
 cachetools
 thefuzz
+psutil
