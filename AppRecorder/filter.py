@@ -103,38 +103,38 @@ def print_certain_event_list(BasePath,event_list,process_name,process_id):
     filename=BasePath+"\\events_"+process_name+".txt"
     
     with codecs.open(filename, 'a', 'utf-8') as file:
+        special_app_id = get_process_id_by_name("ApplicationFrameHost.exe")
         for event in event_list:
             
-            special_app_id=get_process_id_by_name("ApplicationFrameHost.exe")
             event_time = datetime.datetime.fromtimestamp(event.time)
             formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
             if hasattr(event, 'id') and event.id != process_id and event.id !=special_app_id :
                 continue
             if isinstance(event, ElementEvent):
-                file.write(f"{formatted_time} - ElementEvent: path={event.path} - id={event.id}\n")
+                file.write(f"{formatted_time} - 事件: ElementEvent - 控件名路径: {event.path}\n")
             elif isinstance(event, SendKeysEvent):
                
                 file.write(
-                    f"{formatted_time} - SendKeysEvent: line={event.line} - id={event.id}\n")
+                    f"{formatted_time} - 事件: SendKeysEvent - 键入的字符串: {event.line}\n")
             
             elif isinstance(event, MouseWheelEvent):
                 
                 formatted_time = event_time.strftime("%Y-%m-%d %H:%M:%S")
                 file.write(
-                    f"{formatted_time} - MouseWheelEvent: delta={event.delta}- id={event.id}\n")
+                    f"{formatted_time} - 事件: MouseWheelEvent - 偏移值: {event.delta}\n")
 
             elif isinstance(event, ClickEvent):
                 file.write(
-                    f"{formatted_time} - ClickEvent: button={event.button} - click_count={event.click_count} - path={event.path} id={event.id}\n")
+                    f"{formatted_time} - 事件: ClickEvent - 鼠标点击: {event.button} - 点击次数: {event.click_count} - 控件名路径: {event.path}\n")
             
             elif isinstance(event, FindEvent):
         
                 file.write(
-                    f"{formatted_time} - FindEvent: path={event.path} - dx={event.dx} - dy={event.dy} - time={formatted_time}\n")
+                    f"{formatted_time} - FindEvent: path={event.path} - dx={event.dx} - dy={event.dy} \n")
             
             elif isinstance(event, MenuEvent):
                 file.write(
-                    f"{formatted_time} - MenuEvent: path={event.path} - menu_path={event.menu_path} - id={event.id}\n")
+                    f"{formatted_time} - 事件: MenuEvent - menu路径: {event.path} - menu选项: {event.menu_path}\n")
             else:
                 pass
     
