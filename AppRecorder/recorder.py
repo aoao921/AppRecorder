@@ -168,8 +168,11 @@ def _process_keyboard_events(events, i):
 	for i_p_e in sorted(i_processed_events, reverse=True):
 		del events[i_p_e]
 	if line:
-		events[i] = SendKeysEvent(line=line, time=events[i].time,id=get_process_id_from_window_title((element_event_before_sendKey.path).split("||")[0]))
-
+		try:
+			events[i] = SendKeysEvent(line=line, time=events[i].time,id=get_process_id_from_window_title((element_event_before_sendKey.path).split("||")[0]))
+		except AttributeError as e:
+			print("发生了属性错误：", e)
+		
 
 def _process_wheel_events(events, i):
 	i0 = i - 1
@@ -523,7 +526,7 @@ class Recorder(Thread):
 	
 	
 	def __init__(self,base_path, process_list):
-		from .element_observer import ElementInfoTooltip
+		# from .element_observer import ElementInfoTooltip
 		Thread.__init__(self)
 		from win32api import GetSystemMetrics
 		self._loop_t0 = None
@@ -696,14 +699,14 @@ class Recorder(Thread):
 		print("监控进程列表",self.process_list)
 		keyboard.hook(self.__key_on)
 		mouse.hook(self.__mouse_on)
-		keyboard.start_recording()
+		# keyboard.start_recording()
 		# win32api.keybd_event(160, 0, win32con.KEYEVENTF_EXTENDEDKEY | win32con.KEYEVENTF_KEYUP, 0)
-		ev_list = keyboard.stop_recording()
-		if not ev_list and os.path.isfile(dir_path + r"\pywinauto_recorder.exe"):
-			print("Couldn't set keyboard hooks. Trying once again...\n")
-			time.sleep(0.5)
-			os.system(dir_path + r"\pywinauto_recorder.exe --no_splash_screen")
-			sys.exit(1)
+		# ev_list = keyboard.stop_recording()
+		# if not ev_list and os.path.isfile(dir_path + r"\pywinauto_recorder.exe"):
+		# 	print("Couldn't set keyboard hooks. Trying once again...\n")
+		# 	time.sleep(0.5)
+		# 	os.system(dir_path + r"\pywinauto_recorder.exe --no_splash_screen")
+		# 	sys.exit(1)
 		elements = []
 		i = 0
 		previous_wrapper_path = None
@@ -939,6 +942,8 @@ class Recorder(Thread):
 			self.event_list = []
 			self.mode = "Stop"
 			time.sleep(0.6)  # wait the recorder to be fully ready
+			
+			
 			if self.started_recording_with_keyboard:
 				_clean_events(events, remove_first_up=True)
 			else:
@@ -947,16 +952,20 @@ class Recorder(Thread):
 			_process_events(events, process_menu_click=self.process_menu_click_mode)
 			_clean_events(events)
 			
+			
 			for process_name in self.process_list:
 				# 判断进程是否在运行
 				if not is_process_running(process_name):
 					continue
 				else:
 					process_id = get_process_id_by_name(process_name)
-					print(events)
+					# print(events)
 					# print(self.base_path, events, process_name, process_id)
+					start_time = time.time()
 					print_certain_event_list(self.base_path, events, process_name, process_id)
-					
+					end_time = time.time()
+					execution_time = end_time - start_time
+					print("代码执行时间为：", execution_time, "秒")
 			# wireshark_id=get_process_id_by_name('Wireshark.exe')
 			# Fiddle_id=get_process_id_by_name("Fiddler.exe")
 			# CanKing_id=get_process_id_by_name("wc32.exe")
